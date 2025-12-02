@@ -33,7 +33,7 @@ fn main() -> std::io::Result<()> {
             part2 += 1;
         }
 
-        dial = ((new_dial + CYCLE_LENGTH) % CYCLE_LENGTH) as u32;
+        dial = (new_dial % CYCLE_LENGTH) as u32;
         if dial == 0 {
             part1 += 1;
         }
