@@ -3,14 +3,13 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 
-fn joltage(mut cells: Vec<u32>) -> u32 {
-    let mut max = 0;
-    for i in 1..cells.len() {
-        let joltage = cells[i - 1] * 10 + cells[i];
-        max = cmp::max(max, joltage);
-        cells[i] = cmp::max(cells[i], cells[i - 1]);
-    }
-    return max;
+fn joltage(cells: Vec<u32>) -> u32 {
+    cells
+        .into_iter()
+        .fold((0, 0), |(m, p), v| {
+            (cmp::max(m, p * 10 + v), cmp::max(p, v))
+        })
+        .0
 }
 
 fn main() -> std::io::Result<()> {
