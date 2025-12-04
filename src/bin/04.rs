@@ -3,11 +3,11 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 
-fn part1(grid: Vec<Vec<u8>>) -> u64 {
+fn find_unblocked(grid: &Vec<Vec<u8>>) -> Vec<(usize, usize)> {
     let w = grid[0].len() as i32;
     let h = grid.len() as i32;
 
-    let mut unblocked = 0;
+    let mut unblocked = Vec::new();
     for y in 0..h {
         for x in 0..w {
             if grid[y as usize][x as usize] == b'.' {
@@ -25,7 +25,7 @@ fn part1(grid: Vec<Vec<u8>>) -> u64 {
                 }
             }
             if n <= 4 {
-                unblocked += 1;
+                unblocked.push((y as usize, x as usize));
             }
         }
     }
@@ -36,12 +36,25 @@ fn main() -> std::io::Result<()> {
     let file = File::open("input/4")?;
     let reader = BufReader::new(file);
 
-    let grid: Vec<Vec<u8>> = reader
+    let mut grid: Vec<Vec<u8>> = reader
         .lines()
         .map(Result::unwrap)
         .map(|s| s.into_bytes())
         .collect();
 
-    println!("Part 1: {}", part1(grid));
+    println!("Part 1: {}", find_unblocked(&grid).len());
+
+    let mut part2 = 0;
+    loop {
+        let unblocked = find_unblocked(&grid);
+        if unblocked.is_empty() {
+            break;
+        }
+        unblocked.iter().for_each(|(y, x)| {
+            grid[*y][*x] = b'.';
+            part2 += 1;
+        });
+    }
+    println!("Part 2: {}", part2);
     Ok(())
 }
