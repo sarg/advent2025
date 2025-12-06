@@ -3,43 +3,61 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 
-fn part1(data: &Vec<Vec<u64>>, ops: &Vec<char>) -> u64 {
-    ops.iter()
-        .enumerate()
-        .map(|(i, op)| match op {
-            '*' => data.iter().map(|d| d[i]).product::<u64>(),
-            '+' => data.iter().map(|d| d[i]).sum::<u64>(),
-            _ => panic!("Unsupported"),
+fn part1_args(strs: &Vec<&str>) -> Vec<u64> {
+    strs.iter()
+        .map(|v| v.trim().parse::<u64>().unwrap())
+        .collect()
+}
+
+fn part2_args(strs: &Vec<&str>) -> Vec<u64> {
+    strs.iter()
+        .flat_map(|a| a.chars().rev().enumerate())
+        .map(|(i, v)| (i, v.to_digit(10).map(|e| e as u64)))
+        .fold(Vec::<u64>::new(), |mut args, (i, d)| {
+            match (args.get(i), d) {
+                (Some(n), Some(d)) => args[i] = n * 10 + d,
+                (None, Some(d)) => args.push(d),
+                (None, None) => args.push(0),
+                _ => {}
+            }
+            args
         })
-        .sum()
 }
 
 fn main() -> std::io::Result<()> {
     let file = File::open("input/6")?;
     let reader = BufReader::new(file);
 
-    let mut data: Vec<Vec<u64>> = Vec::new();
-    let mut ops: Vec<char> = Vec::new();
-    for l in reader.lines() {
-        let line = l?;
-        let t1 = line.split_whitespace().next().unwrap();
-        if t1 == "*" {
-            ops = line
-                .split_whitespace()
-                .map(|s| s.chars().next().expect(""))
-                .collect_vec();
-        } else {
-            let tokens = line
-                .split_whitespace()
-                .map(str::parse::<u64>)
-                .map(Result::unwrap)
-                .collect_vec();
-            data.push(tokens);
-        }
+    let mut lines = reader.lines().map(Result::unwrap).collect_vec();
+    let last_line = lines.pop().unwrap();
+    let mut ops = last_line.as_str();
+
+    let mut part1 = 0;
+    let mut part2 = 0;
+    let mut from = 0;
+    while !ops.is_empty() {
+        let (len, next) = ops[1..]
+            .find(|c| c != ' ')
+            .map_or((ops.len(), ops.len()), |v| (v, v + 1));
+        let op_char = ops.chars().next().expect("should be present");
+        let op = |a: u64, b: u64| -> u64 {
+            match op_char {
+                '+' => a + b,
+                '*' => a * b,
+                _ => unreachable!(),
+            }
+        };
+
+        let args = lines.iter().map(|l| &l[from..(from + len)]).collect_vec();
+        part1 += part1_args(&args).into_iter().reduce(op).unwrap();
+        part2 += part2_args(&args).into_iter().reduce(op).unwrap();
+
+        from += next;
+        ops = &ops[next..];
     }
 
-    println!("Part 1: {}", part1(&data, &ops));
-    println!("Part 2: {}", 0);
+    println!("Part 1: {part1}");
+    println!("Part 2: {part2}");
 
     Ok(())
 }
