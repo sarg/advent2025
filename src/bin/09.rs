@@ -4,7 +4,6 @@ use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
-use std::ops::Bound::*;
 
 type Point = (i64, i64);
 type Segment = (i64, i64);
@@ -176,23 +175,16 @@ impl Figure {
         Self { sweeps: result }
     }
 
-    fn sweep(&self, y: i64) -> &Vec<Segment> {
-        self.sweeps
-            .range((Unbounded, Included(&y)))
-            .last()
-            .unwrap()
-            .1
-    }
-
     fn contains_rect(&self, a: &Point, b: &Point) -> bool {
         let x = (a.0.min(b.0), a.0.max(b.0));
         let y = a.1.min(b.1)..=a.1.max(b.1);
-        y.map(|y| self.sweep(y)).all(|s| contains(s, &x))
+        self.sweeps.range(y).all(|(_, s)| contains(s, &x))
     }
 }
 
 fn main() -> std::io::Result<()> {
     let file = File::open("input/9")?;
+    let mut visual = File::create("output/9.svg")?;
 
     let points: Vec<Point> = BufReader::new(file)
         .lines()
@@ -201,12 +193,20 @@ fn main() -> std::io::Result<()> {
         .filter_map(Result::ok)
         .collect();
 
-    // print!("<path d='M");
-    // for &(x, y) in points.iter() {
-    //     print!("L {x} {y} ");
-    // }
-    // println!("Z'");
-    // println!("fill='transparent' stroke='black' stroke-width='10' style='fill:none' />");
+    let max_x = points.iter().map(|p| p.0).max().unwrap();
+    let max_y = points.iter().map(|p| p.1).max().unwrap();
+
+    visual.write_fmt(format_args!(
+        "<svg width='{max_x}' height='{max_y}' xmlns='http://www.w3.org/2000/svg'>
+<path d='M {} {}",
+        points[0].0, points[0].1
+    ));
+    for &(x, y) in points.iter() {
+        visual.write_fmt(format_args!("L {x} {y} "));
+    }
+    visual.write_all(
+        b"Z' fill='transparent' stroke='black' stroke-width='10' style='fill:none' />\n",
+    );
 
     let part1 = (0..points.len())
         .tuple_combinations()
@@ -231,17 +231,15 @@ fn main() -> std::io::Result<()> {
         });
 
     let figure = Figure::new(segments);
-    // println!("{:?}", figure.sweeps);
 
-    // .sweeps.iter().skip_while(|(&y, _)| y < 94493)
-    // for (y, line) in figure.sweeps {
-    //     for (x1, x2) in line {
-    //         println!(
-    //             "<line x1='{x1}' x2='{x2}' y1='{y}' y2='{y}' style='stroke:red;stroke-width:10'/>"
-    //         );
-    //     }
-    // }
-    // panic!("");
+    for (y, line) in figure.sweeps.iter() {
+        for (x1, x2) in line {
+            visual.write_fmt(format_args!(
+                "<line x1='{x1}' x2='{x2}' y1='{y}' y2='{y}' style='stroke:red;stroke-width:10'/>\n"
+            ));
+        }
+    }
+
     let part2_ab = (0..points.len())
         .tuple_combinations()
         .map(|(a, b)| (&points[a], &points[b]))
@@ -255,5 +253,15 @@ fn main() -> std::io::Result<()> {
     println!("Part 1: {part1}");
     println!("Part 2: {part2} {part2_ab:?}");
 
+    visual.write_fmt(format_args!(
+        "<circle cx='{}' cy='{}' r='150' />\n",
+        part2_ab.0 .0, part2_ab.0 .1
+    ));
+    visual.write_fmt(format_args!(
+        "<circle cx='{}' cy='{}' r='150' />\n",
+        part2_ab.1 .0, part2_ab.1 .1
+    ));
+    visual.write_all(b"</xml>");
+    visual.flush();
     Ok(())
 }
