@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::prelude::*;
@@ -35,25 +34,33 @@ impl Graph {
         self.edges[f].push(t);
     }
 
-    fn _path_count(&self, from: usize, to: usize) -> usize {
-        if from == to {
-            return 1;
+    fn _path_count(&self, from: usize, to: usize, cache: &mut BTreeMap<usize, usize>) -> usize {
+        if let Some(&n) = cache.get(&from) {
+            return n;
         }
 
-        self.edges[from]
-            .iter()
-            .map(|&v| self._path_count(v, to))
-            .sum()
+        let count = if from == to {
+            1
+        } else {
+            self.edges[from]
+                .iter()
+                .map(|&v| self._path_count(v, to, cache))
+                .sum()
+        };
+
+        cache.insert(from, count);
+        count
     }
 
-    fn path_count(&self, from: &str, to: &str) -> usize {
-        return self._path_count(
-            *self
-                .vertices
-                .get(&from.to_string())
-                .expect("from must exist"),
-            *self.vertices.get(&to.to_string()).expect("to must exit"),
-        );
+    fn _idx(&self, v: &str) -> usize {
+        *self.vertices.get(&v.to_string()).expect("must exist")
+    }
+
+    fn path_count(&self, path: &[&str]) -> usize {
+        path.iter()
+            .zip(path.iter().skip(1))
+            .map(|(a, b)| self._path_count(self._idx(a), self._idx(b), &mut BTreeMap::new()))
+            .product()
     }
 }
 
@@ -74,8 +81,13 @@ fn main() -> std::io::Result<()> {
         }
     }
 
-    let part1 = graph.path_count("you", "out");
+    let part1 = graph.path_count(&["you", "out"]);
     println!("Part 1: {part1}");
+
+    let part2 = graph.path_count(&["svr", "dac", "fft", "out"])
+        + graph.path_count(&["svr", "fft", "dac", "out"]);
+
+    println!("Part 2: {part2}");
 
     Ok(())
 }
