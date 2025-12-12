@@ -42,24 +42,33 @@ fn main() -> std::io::Result<()> {
         }
     }
 
-    let mut fit = 0;
-    for t in tasks {
-        let a = t.w * t.h;
-        let b = t
-            .cnt
-            .iter()
-            .enumerate()
-            .map(|(i, &c)| c * (shapes[i].count_ones() as usize))
-            .sum::<usize>();
+    let mut yes = 0;
+    let mut no = 0;
+    let mut maybe = 0;
 
-        let diff = (a as i64) - (b as i64);
-        if diff > 0 {
-            fit += 1;
+    for t in tasks {
+        let s: usize = t.cnt.iter().sum();
+        if (t.w / 3) * (t.h / 3) >= s {
+            yes += 1;
+        } else {
+            let a = t.w * t.h;
+            let b = t
+                .cnt
+                .iter()
+                .enumerate()
+                .map(|(i, &c)| c * (shapes[i].count_ones() as usize))
+                .sum::<usize>();
+            let diff = (a as i64) - (b as i64);
+            if diff < 0 {
+                no += 1;
+            } else {
+                maybe += 1;
+            }
         }
     }
 
     // ¯\\_(ツ)_/¯
-    println!("total: {fit}");
+    println!("yes: {yes} no: {no} maybe: {maybe}");
 
     Ok(())
 }
